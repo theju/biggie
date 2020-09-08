@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Biggie</title>
+        <link rel="icon" type="image/png" href="favicon.png">
+        <style>
+         html {
+             font-size: 16px;
+             font-family: Helvetica;
+         }
+         body {
+             color: #363636;
+             padding: 0 0.5rem;
+         }
+         .title {
+             font-size: 2rem;
+             margin: 0 0 1rem 0;
+         }
+         .sub-title {
+             font-size: 1rem;
+             font-weight: normal;
+             margin: 0;
+         }
+         textarea {
+             width: 100%;
+             font-size: 1.5rem;
+             color: #363636;
+             border-radius: 0.25rem;
+             border-color: 0.1px solid #eee;
+         }
+         .is-hidden {
+             display: none !important;
+         }
+         .is-pulled-right {
+             float: right !important;
+         }
+         .button {
+             font-size: 1.5rem;
+             font-weight: normal;
+             border-color: transparent;
+             border-radius: 0.25rem;
+             padding: 0.5rem;
+         }
+         .button.is-primary {
+             background-color: #00c4a7;
+             color: #fff;
+         }
+         .button.is-light {
+             color: #363636;
+             background-color: #eee;
+         }
+         .columns {
+             display: flex;
+         }
+         .columns.is-vcentered {
+             align-items: center;
+         }
+         .fs-container {
+             background-color: #fff;
+             flex-direction: column;
+         }
+         .fs-container span {
+             flex-shrink: 0;
+         }
+         .nav.columns {
+             width: 100%;
+             position: absolute;
+             bottom: 2rem;
+             left: 2rem;
+             justify-content: center;
+         }
+         .nav.columns .button {
+             margin: 0 0.5rem;
+             width: 100px;
+             font-size: 2rem;
+             font-weight: bold;
+         }
+         .next {
+             position: absolute;
+             right: 2rem;
+         }
+         .prev {
+             position: absolute;
+             left: 0;
+         }
+        </style>
+    </head>
+    <body>
+        <section>
+            <div class="container">
+                <h1 class="title">Biggie</h1>
+                <h2 class="sub-title">Enter text that you want to display fullscreen</h2>
+                <form>
+                    <textarea class="textarea" placeholder="Text here" rows="10"></textarea>
+                    <div class="mt-2">
+                        <input type="submit" class="button is-primary is-large fs" value="Fullscreen" >
+                        <input type="reset" class="button is-large is-light is-pulled-right" value="Reset">
+                    </div>
+                </form>
+                <div class="columns fs-container is-vcentered is-hidden">
+                    <span></span>
+                    <div class="nav columns">
+                        <button class="button is-large is-primary prev is-hidden">&lt;&lt;</button>
+                        <button class="button is-large is-light exit">Exit</button>
+                        <button class="button is-large is-primary next is-hidden">&gt;&gt;</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <script type="text/javascript">
+         (function() {
+             let $ = (sel) => document.querySelector(sel);
+             let $All = (sel) => document.querySelectorAll(sel);
+
+             let fs = $('.fs-container');
+             let fsC = fs.querySelector('span');
+
+             let lines = [];
+             let lineIdx = 0;
+
+             document.addEventListener('fullscreenchange', function(ev) {
+                 let fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+                 if (!fsEl) {
+                     fsC.innerText = '';
+                     fsC.style['font-size'] = '0px';
+                     fs.classList.add('is-hidden');
+                     lineIdx = 0;
+                 }
+             });
+
+             window.addEventListener('resize', () => adjustFontSize());
+
+             $('form').addEventListener('submit', function(ev) {
+                 ev.preventDefault();
+
+                 lines = $('textarea').value.split('\n');
+                 lines = lines.filter((ii) => ii.trim());
+                 if (lines.length > 0) {
+                     if (lines.length === 1) {
+                         fsC.innerText = lines[lineIdx];
+                     } else {
+                         $('.next').classList.remove('is-hidden');
+                         fsC.innerText = lines[lineIdx];
+                     }
+                     fs.classList.remove('is-hidden');
+                     if (fs.webkitRequestFullscreen) {
+                         fs.webkitRequestFullscreen();
+                         adjustFontSize();
+                     } else {
+                         fs.requestFullscreen().then(function() {
+                             adjustFontSize();
+                         });
+                     }
+                 }
+             });
+
+             function adjustFontSize() {
+                 let ii = true;
+                 let fontSize = 1;
+                 let cr = 1;
+                 let dW = document.documentElement.clientWidth;
+                 let dH = document.documentElement.clientHeight;
+                 while (ii === true && !$('.fs-container').classList.contains('is-hidden')) {
+                     let br = fsC.getBoundingClientRect();
+                     if (dW - br.width < 0 || dH - br.height < 0) {
+                         fsC.style['font-size'] = `${fontSize}vw`;
+                         fontSize -= cr;
+                         cr = cr / 2;
+                         if (cr < 0.05) {
+                             ii = false;
+                         }
+                     } else {
+                         fsC.style['font-size'] = `${fontSize}vw`;
+                         fontSize += cr;
+                     }
+                 }
+             }
+
+             $('.prev').addEventListener('click', function() {
+                 lineIdx -= 1;
+                 if (lineIdx < 0) {
+                     lineIdx = 0;
+                 }
+                 if (lineIdx === 0) {
+                     $('.prev').classList.add('is-hidden');
+                 }
+                 fsC.innerText = lines[lineIdx];
+                 adjustFontSize();
+                 $('.next').classList.remove('is-hidden');
+             });
+
+             $('.next').addEventListener('click', function() {
+                 lineIdx += 1;
+                 if (lineIdx > lines.length) {
+                     lineIdex = lines.length - 1;
+                 }
+                 if (lineIdx === lines.length - 1) {
+                     $('.next').classList.add('is-hidden');
+                 }
+                 fsC.innerText = lines[lineIdx];
+                 adjustFontSize();
+                 $('.prev').classList.remove('is-hidden');
+             });
+
+             $('.exit').addEventListener('click', function() {
+                 if (document.webkitExitFullscreen) {
+                     document.webkitExitFullscreen();
+                     fsC.innerText = '';
+                     fsC.style['font-size'] = '0px';
+                     fs.classList.add('is-hidden');
+                     lineIdx = 0;
+                 } else {
+                     document.exitFullscreen();
+                 }
+             });
+         })();
+        </script>
+    </body>
+</html>
